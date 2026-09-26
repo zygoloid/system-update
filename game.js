@@ -93,6 +93,7 @@
   // ───────────────────────── Update status ─────────────────────────
 
   const verName = u => APPS[u.app].name + ' ' + u.ver;
+  const notesOf = u => (u.typo && !inst.has(u.typo.fixedBy) ? u.typo.notes : u.notes);
   const sizeOf = u => u.size * stats.sizeMult;
   const reqMet = u => u.req.every(r => inst.has(r));
 
@@ -202,10 +203,10 @@
     }
     if (u.app === 'os') {
       openApp('home', true);
-      if (!u.event) notify('os', `Welcome to PhoneOS ${u.ver}`, u.notes[0], 'settings');
+      if (!u.event) notify('os', `Welcome to PhoneOS ${u.ver}`, notesOf(u)[0], 'settings');
     } else {
       notify(u.app === 'button' ? 'button' : 'updater', `${APPS[u.app].name} Updated`,
-        `${APPS[u.app].name} is now version ${u.ver}. ${u.notes[0]}`, u.app === 'button' ? 'button' : 'updates');
+        `${APPS[u.app].name} is now version ${u.ver}. ${notesOf(u)[0]}`, u.app === 'button' ? 'button' : 'updates');
     }
     sfx.done();
     save();
@@ -1087,14 +1088,14 @@
   }
 
   function notesHtml(u) {
-    return u.notes.map(n => n[0] === '~' ? `<li class="fine">${esc(n.slice(1))}</li>` : `<li>${esc(n)}</li>`).join('');
+    return notesOf(u).map(n => n[0] === '~' ? `<li class="fine">${esc(n.slice(1))}</li>` : `<li>${esc(n)}</li>`).join('');
   }
 
   function histHtml(u) {
     const open = rt.histOpen.has(u.id);
     return `<button class="hist ${open ? 'open' : ''}" data-act="hist" data-id="${u.id}" aria-expanded="${open}">${icon(u.app)}
       <span><b>${esc(APPS[u.app].name)}</b> <span class="mono">${u.ver}</span>
-      ${open ? `<ul class="uc-notes">${notesHtml(u)}</ul>` : `<em>${esc(u.notes[0])}</em>`}</span></button>`;
+      ${open ? `<ul class="uc-notes">${notesHtml(u)}</ul>` : `<em>${esc(notesOf(u)[0])}</em>`}</span></button>`;
   }
 
   function tryBuy(id) {

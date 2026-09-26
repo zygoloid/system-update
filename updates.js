@@ -16,6 +16,7 @@
 //   prep     seconds of "Preparing update…" after download (ignores download speed)
 //   boot     seconds the phone spends rebooting while installing (OS only)
 //   event    something special that happens on install (handled by game.js)
+//   typo     { fixedBy, notes }: show these notes instead until update `fixedBy` is installed
 
 (function (root) {
   'use strict';
@@ -141,10 +142,12 @@
 
     { id: 'b220', app: 'button', ver: '2.2.0', cost: 510, size: 29,
       notes: ['Lucky Presses: each press has a 5% chance to be worth 10×.'],
+      typo: { fixedBy: 'b221', notes: ['Lcuky Presses: each press has a 5% chance to be worth 10×.'] },
       fx: s => { s.critChance = 0.05; s.critMult = 10; } },
 
     { id: 'b221', joke: true, app: 'button', ver: '2.2.1', cost: 150, reveal: 510, size: 4.5,
       notes: ['Fixed a typo in the notes for Button 2.2.0.', 'Fixed a typo in the notes for Button 2.2.1.'],
+      typo: { fixedBy: 'b221', notes: ['Fixed a typo in the notes for Button 2.2.0.', 'Fixed a typo in the ntoes for Button 2.2.1.'] },
       fx: () => {} },
 
     { id: 'c40', app: 'carrier', ver: '4.0', cost: 530, size: 6, after: ['u200'],
@@ -317,6 +320,7 @@
     lastOfApp[u.app] = u.id;
   }
   for (const u of U) for (const r of u.req) if (!byId[r]) throw new Error(u.id + ' requires unknown ' + r);
+  for (const u of U) if (u.typo && !byId[u.typo.fixedBy]) throw new Error(u.id + ' typo fixed by unknown ' + u.typo.fixedBy);
 
   function computeStats(installed) {
     const s = baseStats();
