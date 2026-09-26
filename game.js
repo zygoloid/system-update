@@ -445,8 +445,8 @@
     photos: ['Photos', () => 'No photos yet. Buttons are hard to photograph.'],
     mail: ['Mail', () => '1 unread message from Button Inc.: “Thanks for pressing! Please keep pressing.”'],
     notes: ['Notes', () => S.ended ? 'Note to self: Button doesn’t work anymore.' : 'Note to self: press the button.'],
-    weather: ['Weather', () => 'Today: 100% chance of buttons.'],
-    maps: ['Maps', () => 'You are here. The button is also here.'],
+    weather: ['Weather', () => S.ended ? 'Today: 0% chance of buttons. Scattered nostalgia this afternoon.' : 'Today: 100% chance of buttons.'],
+    maps: ['Maps', () => S.ended ? 'You are here. The button used to be here too.' : 'You are here. The button is also here.'],
     music: ['Music', () => 'Now playing: the sound of one button clicking.'],
     calc: ['Calculator', () => S.ended ? 'Calculator is compatible with PhoneOS 15. Some apps can’t say that.' : 'Calculator can’t count this high. Try Button instead.'],
   };
