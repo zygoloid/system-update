@@ -141,6 +141,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
   flex-direction: column;
   gap: 22px;
 }
+.pages {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -18px;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pages::-webkit-scrollbar { display: none; }
+.pages.dragging { scroll-snap-type: none; cursor: grabbing; }
+.page { flex: 0 0 100%; scroll-snap-align: start; padding: 0 18px; display: flex; flex-direction: column; gap: 22px; }
 .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px 8px; }
 .app-icon {
   border: 0;
@@ -206,6 +220,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ico-maps { background: #e4efe1; color: #2e8b57; }
 .ico-music { background: linear-gradient(160deg, #ff5f73, #f0364f); }
 .ico-calc { background: #ff9f0a; }
+.ico-camera { background: linear-gradient(160deg, #6b6f76, #2e3136); }
+.ico-wallet { background: #111; }
+.ico-health { background: #fff; }
+.ico-stocks { background: #111; color: #34c759; }
+.ico-files { background: linear-gradient(160deg, #3aa0ff, #1a74e0); }
+.ico-podcasts { background: linear-gradient(160deg, #b36bff, #8338ec); }
 
 .os15 .ico { border-radius: 32%; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 16px rgba(0, 0, 0, 0.3); }
 
@@ -227,9 +247,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .badge.inline { position: static; display: inline-block; margin-right: 6px; }
 
-.page-dots { margin-top: auto; display: flex; justify-content: center; gap: 7px; }
-.page-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); }
-.page-dots i.on { background: #fff; }
+.page-dots { display: flex; justify-content: center; gap: 10px; }
+.page-dots button { position: relative; width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.4); }
+.page-dots button::before { content: ""; position: absolute; inset: -7px; }
+.page-dots button.on { background: #fff; }
+.page-dots button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 .dock {
   display: grid;
