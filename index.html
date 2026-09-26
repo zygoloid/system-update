@@ -26,9 +26,16 @@
       </header>
 
       <section class="home" id="home" aria-label="Home Screen">
-        <div class="widget" id="widget" hidden></div>
-        <div class="icon-grid" id="icon-grid"></div>
-        <div class="page-dots" aria-hidden="true"><i class="on"></i><i></i></div>
+        <div class="pages" id="pages">
+          <div class="page">
+            <div class="widget" id="widget" hidden></div>
+            <div class="icon-grid" id="icon-grid"></div>
+          </div>
+          <div class="page"><div class="icon-grid" id="icon-grid-2"></div></div>
+        </div>
+        <div class="page-dots" id="page-dots">
+          <button class="on" data-page="0" aria-label="Page 1"></button><button data-page="1" aria-label="Page 2"></button>
+        </div>
         <nav class="dock" id="dock"></nav>
       </section>
 

@@ -93,6 +93,7 @@
   // ───────────────────────── Update status ─────────────────────────
 
   const verName = u => APPS[u.app].name + ' ' + u.ver;
+  const notesOf = u => (u.typo && !inst.has(u.typo.fixedBy) ? u.typo.notes : u.notes);
   const sizeOf = u => u.size * stats.sizeMult;
   const reqMet = u => u.req.every(r => inst.has(r));
 
@@ -202,10 +203,10 @@
     }
     if (u.app === 'os') {
       openApp('home', true);
-      if (!u.event) notify('os', `Welcome to PhoneOS ${u.ver}`, u.notes[0], 'settings');
+      if (!u.event) notify('os', `Welcome to PhoneOS ${u.ver}`, notesOf(u)[0], 'settings');
     } else {
       notify(u.app === 'button' ? 'button' : 'updater', `${APPS[u.app].name} Updated`,
-        `${APPS[u.app].name} is now version ${u.ver}. ${u.notes[0]}`, u.app === 'button' ? 'button' : 'updates');
+        `${APPS[u.app].name} is now version ${u.ver}. ${notesOf(u)[0]}`, u.app === 'button' ? 'button' : 'updates');
     }
     sfx.done();
     save();
@@ -427,6 +428,12 @@
     weather: '<svg viewBox="0 0 24 24" class="multi"><circle cx="9.5" cy="9.5" r="3.6" fill="#FFD54A"/><path d="M8.5 18h8.6a3 3 0 0 0 .2-6 4.6 4.6 0 0 0-8.8 1.4A2.3 2.3 0 0 0 8.5 18z" fill="#fff"/></svg>',
     maps: '<svg viewBox="0 0 24 24"><path d="M12 20.5s-5.8-6-5.8-10.2a5.8 5.8 0 0 1 11.6 0c0 4.2-5.8 10.2-5.8 10.2z"/><circle cx="12" cy="10.3" r="2"/></svg>',
     music: '<svg viewBox="0 0 24 24"><path d="M9 17.5V6.3l9.5-2v11.2"/><circle cx="7" cy="17.5" r="2"/><circle cx="16.5" cy="15.5" r="2"/></svg>',
+    camera: '<svg viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12" rx="2.5"/><circle cx="12" cy="13" r="3.2"/><path d="M9 7l1.2-2h3.6L15 7"/></svg>',
+    wallet: '<svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M14.5 12.5h6"/><circle class="g-fill" cx="16.5" cy="12.5" r="1"/></svg>',
+    health: '<svg viewBox="0 0 24 24" class="multi"><path d="M12 19.2s-7.2-4.5-7.2-9.4A3.9 3.9 0 0 1 12 7.7a3.9 3.9 0 0 1 7.2 2.1c0 4.9-7.2 9.4-7.2 9.4z" fill="#ff375f"/></svg>',
+    stocks: '<svg viewBox="0 0 24 24"><path d="M4 16.5l5-5 3.5 3.5L20 7.5"/><path d="M15 7.5h5v5"/></svg>',
+    files: '<svg viewBox="0 0 24 24"><path d="M4 7.5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>',
+    podcasts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="2.2"/><path d="M8.1 13.9a5.5 5.5 0 1 1 7.8 0M12 13.5V20"/></svg>',
     calc: '<svg viewBox="0 0 24 24"><rect x="6" y="3.5" width="12" height="17" rx="2.2"/><path d="M9 7.8h6M9 12h.01M12 12h.01M15 12h.01M9 15.8h.01M12 15.8h.01M15 15.8h.01"/></svg>',
   };
   function icon(name, extra = '') {
@@ -443,6 +450,17 @@
     music: ['Music', () => 'Now playing: the sound of one button clicking.'],
     calc: ['Calculator', () => S.ended ? 'Calculator is compatible with PhoneOS 15. Some apps can’t say that.' : 'Calculator can’t count this high. Try Button instead.'],
   };
+
+  // Second page of the Home Screen
+  const DUMMY2 = {
+    camera: ['Camera', () => 'Say cheese. Actually, say “button”.'],
+    wallet: ['Wallet', () => `You have ${fmt(S.clicks)} clicks. They are not legal tender.`],
+    health: ['Health', () => `Today: 0 steps, ${fmt(S.manual)} presses. Your thumb is in peak condition.`],
+    stocks: ['Stocks', () => S.ended ? 'BTN ▼ 100%. Trading halted: product discontinued.' : 'BTN ▲ 4,000%. Past pressing is no guarantee of future pressing.'],
+    files: ['Files', () => '1 item: button_final_v2_REAL_final.png'],
+    podcasts: ['Podcasts', () => 'Up next: The Button Show, episode 412: “Pressing Matters”.'],
+  };
+  const DUMMY_ALL = Object.assign({}, DUMMY, DUMMY2);
 
   // ───────────────────────── Modals ─────────────────────────
 
@@ -489,6 +507,18 @@
     if (name === 'home') S.flags.wentHome = 1;
     rt.dirty = true;
     render();
+  }
+
+  function showPage(n) {
+    const pages = $('#pages');
+    pages.scrollTo({ left: n * pages.clientWidth, behavior: 'smooth' });
+  }
+
+  // Leave an app for the Home Screen; from the Home Screen, go back to the first page.
+  function goHome() {
+    if (booting()) return;
+    if (rt.fg === 'home') showPage(0);
+    else openApp('home');
   }
 
   function showIncompatible() {
@@ -590,9 +620,10 @@
 
     // ── Home screen ──
     buildHome() {
-      const grid = $('#icon-grid');
-      grid.innerHTML = Object.entries(DUMMY).map(([k, [name]]) =>
+      const icons = apps => Object.entries(apps).map(([k, [name]]) =>
         `<button class="app-icon" data-dummy="${k}">${icon(k)}<span>${name}</span></button>`).join('');
+      $('#icon-grid').innerHTML = icons(DUMMY);
+      $('#icon-grid-2').innerHTML = icons(DUMMY2);
       $('#dock').innerHTML = [['button', 'Button'], ['updates', 'Updates', 'updater'], ['settings', 'Settings']]
         .map(([k, name, ic]) => `<button class="app-icon" data-open="${k}">${icon(ic || k)}<span>${name}</span><b class="badge" hidden></b></button>`).join('');
       $('#widget').innerHTML = `<div class="widget-in">
@@ -1087,14 +1118,14 @@
   }
 
   function notesHtml(u) {
-    return u.notes.map(n => n[0] === '~' ? `<li class="fine">${esc(n.slice(1))}</li>` : `<li>${esc(n)}</li>`).join('');
+    return notesOf(u).map(n => n[0] === '~' ? `<li class="fine">${esc(n.slice(1))}</li>` : `<li>${esc(n)}</li>`).join('');
   }
 
   function histHtml(u) {
     const open = rt.histOpen.has(u.id);
     return `<button class="hist ${open ? 'open' : ''}" data-act="hist" data-id="${u.id}" aria-expanded="${open}">${icon(u.app)}
       <span><b>${esc(APPS[u.app].name)}</b> <span class="mono">${u.ver}</span>
-      ${open ? `<ul class="uc-notes">${notesHtml(u)}</ul>` : `<em>${esc(u.notes[0])}</em>`}</span></button>`;
+      ${open ? `<ul class="uc-notes">${notesHtml(u)}</ul>` : `<em>${esc(notesOf(u)[0])}</em>`}</span></button>`;
   }
 
   function tryBuy(id) {
@@ -1232,26 +1263,70 @@
       if (o) { sfx.tap(); openApp(o.dataset.open); return; }
       const d = e.target.closest('[data-dummy]');
       if (d) {
-        const [name, msg] = DUMMY[d.dataset.dummy];
+        const [name, msg] = DUMMY_ALL[d.dataset.dummy];
         modal({ title: name, body: esc(msg()), buttons: [{ label: 'OK', primary: true }] });
       }
     });
 
+    // Home Screen pages: native swipe on touch, drag with a mouse, or tap a dot
+    const pages = $('#pages');
+    const pageNow = () => Math.round(pages.scrollLeft / pages.clientWidth);
+    pages.addEventListener('scroll', () => {
+      const n = pageNow();
+      $$('#page-dots button').forEach((b, i) => b.classList.toggle('on', i === n));
+    }, { passive: true });
+    $('#page-dots').addEventListener('click', e => {
+      const b = e.target.closest('[data-page]');
+      if (b) showPage(+b.dataset.page);
+    });
+    let drag = null;
+    pages.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { id: e.pointerId, x: e.clientX, left: pages.scrollLeft, page: pageNow(), moved: false };
+    });
+    pages.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) > 6) {
+        drag.moved = true;
+        pages.classList.add('dragging');
+        try { pages.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+      if (drag.moved) pages.scrollLeft = drag.left - dx;
+    });
+    const endDrag = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      if (drag.moved) {
+        pages.classList.remove('dragging');
+        const n = Math.abs(dx) > 40 ? drag.page - Math.sign(dx) : drag.page;
+        showPage(Math.max(0, Math.min(1, n)));
+        rt.suppressClick = true;
+        setTimeout(() => { rt.suppressClick = false; }, 0);
+      }
+      drag = null;
+    };
+    pages.addEventListener('pointerup', endDrag);
+    pages.addEventListener('pointercancel', endDrag);
+    pages.addEventListener('click', e => {
+      if (rt.suppressClick) { e.stopPropagation(); e.preventDefault(); }
+    }, { capture: true });
+
     // Home bar: tap or swipe up
     const hb = $('#homebar');
-    hb.addEventListener('click', () => { if (!booting()) openApp('home'); });
+    hb.addEventListener('click', goHome);
     let swipeY = null;
     screen.addEventListener('pointerdown', e => {
       const r = screen.getBoundingClientRect();
       swipeY = r.bottom - e.clientY < 34 ? e.clientY : null;
     });
     screen.addEventListener('pointerup', e => {
-      if (swipeY !== null && swipeY - e.clientY > 40 && !booting()) openApp('home');
+      if (swipeY !== null && swipeY - e.clientY > 40) goHome();
       swipeY = null;
     });
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !booting()) openApp('home');
+      if (e.key === 'Escape') goHome();
       if (e.key === ' ' && rt.fg === 'button' && !e.target.closest('button')) {
         e.preventDefault();
         if (pressBlock()) return;
