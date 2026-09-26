@@ -44,7 +44,7 @@
   function fresh() {
     return {
       v: 1, clicks: 0, total: 0, presses: 0, manual: 0,
-      installed: [], dl: {}, iq: [], seen: {}, flags: {},
+      installed: [], dl: {}, iq: [], seen: {}, flags: {}, stopped: {},
       settings: { sound: true, banners: true, autoDl: true, autoInst: true },
       created: Date.now(), played: 0, last: Date.now(), ended: false,
     };
@@ -59,7 +59,7 @@
     fg: 'button', cd: [], wcd: 0, autoAcc: 0, held: new Map(), offsets: [],
     gains: [0], gainT: 0, rate: 0, quiet: false, quietLog: null,
     nq: [], bannerUntil: 0, dirty: true, fingerIdx: 0, adTimer: 12, ad: null,
-    bubbleUntil: 0, lastSound: 0, labels: [], endTimer: null, expanded: new Set(),
+    bubbleUntil: 0, lastSound: 0, labels: [], endTimer: null, expanded: new Set(), histOpen: new Set(),
   };
 
   function refreshStats() {
@@ -136,10 +136,24 @@
     if (status(u) !== 'available' || S.clicks < u.cost) return false;
     S.clicks -= u.cost;
     S.dl[id] = { mb: 0, prep: u.prep || 0, st: 'queued' };
+    if (!auto) delete S.stopped[id];
     pump();
     rt.dirty = true;
     if (!auto) sfx.tap();
     return true;
+  }
+
+  // Stopping a download throws away its progress and refunds the price. Automatic
+  // Downloads leaves it alone until the player taps Get again.
+  function stopDownload(id) {
+    const e = S.dl[id];
+    if (!e || !['queued', 'dl', 'prep'].includes(e.st)) return;
+    delete S.dl[id];
+    S.clicks += byId[id].cost;
+    S.stopped[id] = 1;
+    pump();
+    rt.dirty = true;
+    sfx.tap();
   }
 
   function pump() {
@@ -268,7 +282,7 @@
     }
 
     if (stats.autoDl && S.settings.autoDl) {
-      for (const u of UPDATES) if (!u.manual && S.clicks >= u.cost && status(u) === 'available') buy(u.id, true);
+      for (const u of UPDATES) if (!u.manual && !S.stopped[u.id] && S.clicks >= u.cost && status(u) === 'available') buy(u.id, true);
     }
 
     // Pressing
@@ -841,6 +855,8 @@
           if (act === 'buy') tryBuy(id);
           else if (act === 'install') tryInstall(id);
           else if (act === 'installall') installAll();
+          else if (act === 'stop') stopDownload(id);
+          else if (act === 'hist') { rt.histOpen.has(id) ? rt.histOpen.delete(id) : rt.histOpen.add(id); rt.updSig = ''; }
           else if (act === 'more') { t.closest('.uc').classList.add('expanded'); rt.expanded.add(id || t.closest('.uc').dataset.id); }
           else if (act === 'history') { rt.showAllHistory = !rt.showAllHistory; rt.updSig = ''; }
           return;
@@ -967,7 +983,7 @@
       if (hist.length) {
         const shown = rt.showAllHistory ? hist : hist.slice(0, 4);
         html += `<h3 class="sec">Recently Updated</h3><div class="group">` +
-          shown.map(id => { const u = byId[id]; return `<div class="hist">${icon(u.app)}<span><b>${esc(APPS[u.app].name)}</b> <span class="mono">${u.ver}</span><em>${esc(u.notes[0])}</em></span></div>`; }).join('') +
+          shown.map(id => histHtml(byId[id])).join('') +
           (hist.length > 4 ? `<button class="link-btn" data-act="history">${rt.showAllHistory ? 'Show less' : `Show all ${hist.length}`}</button>` : '') + '</div>';
       }
       body.innerHTML = html;
@@ -1044,20 +1060,20 @@
     const price = u.cost ? `${fmt(u.cost)} clicks` : 'Free';
     let action = '';
     let meta = `${fmtSize(sizeOf(u))} · ${price}`;
-    const ringSvg = '<span class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="ring-p" cx="18" cy="18" r="15"/></svg><i></i></span>';
+    const ringSvg = `<button class="ring" data-act="stop" data-id="${u.id}" aria-label="Stop downloading ${esc(verName(u))}"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="ring-p" cx="18" cy="18" r="15"/></svg><i></i></button>`;
     let bar = false;
     switch (st) {
       case 'available':
         action = `<button class="pill ${afford ? '' : 'off'}" data-act="buy" data-id="${u.id}" ${afford ? '' : 'disabled'}>${u.cost ? 'Get' : 'Get'}</button>`;
         break;
-      case 'queued': action = '<span class="pill ghost">Waiting</span>'; meta = `${fmtSize(sizeOf(u))} · Queued`; break;
+      case 'queued': action = ringSvg; meta = `${fmtSize(sizeOf(u))} · Waiting to download`; break;
       case 'dl': action = ringSvg; bar = true; meta = 'Downloading…'; break;
       case 'prep': action = ringSvg; bar = true; meta = 'Preparing update…'; break;
       case 'ready': action = `<button class="pill" data-act="install" data-id="${u.id}">Install</button>`; meta = `${fmtSize(sizeOf(u))} · Ready to install`; break;
       case 'iq': action = '<span class="pill ghost">Waiting</span>'; meta = 'Waiting to install…'; break;
       case 'inst': action = '<span class="spinner"></span>'; bar = true; meta = u.app === 'os' ? 'Restarting…' : 'Installing…'; break;
     }
-    const notes = u.notes.map(n => n[0] === '~' ? `<li class="fine">${esc(n.slice(1))}</li>` : `<li>${esc(n)}</li>`).join('');
+    const notes = notesHtml(u);
     const tag = u.critical ? '<span class="tag crit">Critical</span>' : u.id === 'os150' ? '<span class="tag big">Major</span>' : '';
     return `<div class="uc ${u.id === 'os150' ? 'os15card' : ''} ${rt.expanded.has(u.id) ? 'expanded' : ''}" data-id="${u.id}">
       ${icon(u.app)}
@@ -1068,6 +1084,17 @@
       ${u.notes.length > 2 ? '<button class="more" data-act="more">more</button>' : ''}
       ${bar ? '<div class="uc-bar"><i></i></div>' : ''}
     </div>`;
+  }
+
+  function notesHtml(u) {
+    return u.notes.map(n => n[0] === '~' ? `<li class="fine">${esc(n.slice(1))}</li>` : `<li>${esc(n)}</li>`).join('');
+  }
+
+  function histHtml(u) {
+    const open = rt.histOpen.has(u.id);
+    return `<button class="hist ${open ? 'open' : ''}" data-act="hist" data-id="${u.id}" aria-expanded="${open}">${icon(u.app)}
+      <span><b>${esc(APPS[u.app].name)}</b> <span class="mono">${u.ver}</span>
+      ${open ? `<ul class="uc-notes">${notesHtml(u)}</ul>` : `<em>${esc(u.notes[0])}</em>`}</span></button>`;
   }
 
   function tryBuy(id) {
