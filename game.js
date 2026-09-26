@@ -1306,6 +1306,27 @@
       }
       drag = null;
     };
+    // Mouse wheels and trackpad swipes both flick between pages, whichever way they
+    // scroll. (Letting the browser handle horizontal swipes snapped back to page one
+    // once this listener existed.)
+    let wheelAcc = 0;
+    let wheelLock = 0;
+    let wheelLast = 0;
+    $('#home').addEventListener('wheel', e => {
+      e.preventDefault();
+      const now = performance.now();
+      if (now < wheelLock) return;
+      if (now - wheelLast > 300) wheelAcc = 0;
+      wheelLast = now;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      wheelAcc += e.deltaMode === 1 ? d * 16 : d;
+      if (Math.abs(wheelAcc) < 40) return;
+      const n = Math.max(0, Math.min(1, pageNow() + Math.sign(wheelAcc)));
+      wheelAcc = 0;
+      wheelLock = now + 450;
+      showPage(n);
+    }, { passive: false });
+
     pages.addEventListener('pointerup', endDrag);
     pages.addEventListener('pointercancel', endDrag);
     pages.addEventListener('click', e => {
@@ -1327,6 +1348,10 @@
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') goHome();
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && rt.fg === 'home' && !$('.modal-wrap')) {
+        e.preventDefault();
+        showPage(e.key === 'ArrowRight' ? 1 : 0);
+      }
       if (e.key === ' ' && rt.fg === 'button' && !e.target.closest('button')) {
         e.preventDefault();
         if (pressBlock()) return;
