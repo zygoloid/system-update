@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#16201c">
+<title>System Update</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,900&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="stage">
+  <div class="phone" id="phone">
+    <div class="screen" id="screen">
+      <div class="wallpaper" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <header class="statusbar" id="statusbar">
+        <span class="sb-time" id="sb-time">9:41</span>
+        <span class="island" aria-hidden="true"></span>
+        <span class="sb-right">
+          <span class="sb-net" id="sb-net">EDGE</span>
+          <span class="sb-bars" id="sb-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span class="sb-batt" aria-hidden="true"><i></i></span>
+        </span>
+      </header>
+
+      <section class="home" id="home" aria-label="Home Screen">
+        <div class="widget" id="widget" hidden></div>
+        <div class="icon-grid" id="icon-grid"></div>
+        <div class="page-dots" aria-hidden="true"><i class="on"></i><i></i></div>
+        <nav class="dock" id="dock"></nav>
+      </section>
+
+      <section class="app app-button" id="app-button" aria-label="Button"></section>
+      <section class="app app-updates" id="app-updates" aria-label="Update Manager"></section>
+      <section class="app app-settings" id="app-settings" aria-label="Settings"></section>
+
+      <div class="banners" id="banners" aria-live="polite"></div>
+      <div class="modal-root" id="modal-root"></div>
+      <div class="boot" id="boot" hidden></div>
+      <div class="hint" id="home-hint" hidden>Tap here to go Home</div>
+      <button class="homebar" id="homebar" aria-label="Go to Home Screen"><i></i></button>
+    </div>
+  </div>
+  <p class="stage-note">System Update · an incremental game about a button. Progress saves in this browser.</p>
+</main>
+<script src="updates.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
